@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        input {
+            width: 6rem;
+        }
         button[data-matrix-index] {
             width: 2rem;
             height: 2rem;
+            max-width: 2rem;
+            max-height: 2rem;
             font-weight: 700;
             font-size: 14px;
         }
@@ -16,6 +21,9 @@
     </style>
 </head>
 <body>
+    <div>
+        <button type="button" id="start">START</button>
+    </div>
     <table>
         <tbody id="matrix"></tbody>
     </table>

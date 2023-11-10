@@ -1,25 +1,43 @@
 // DONT EDIT CONSTANTS
+/** @type {string[]} */
+const numColor = ['gray', 'blue', 'green', 'red', 'darkblue', 'brown', 'cyan', 'black', 'darkslategray']
 /** @type {[number,number][]} */
 const surroundingPos = [[-1, -1],[0, -1],[1, -1],[-1, 0],[1, 0],[-1, 1],[0, 1],[1, 1]]
-/** @type {{ pos: [number, number], bomb: boolean, value: number, opened: boolean }[]} */
+/** @type {{ pos: [number, number], bomb: boolean, value: number, opened: boolean, flagged: boolean }[]} */
 const matrix = [];
 /** @type {number[]} */
 const bombIndex = [];
-/** @type {number[]} */
-const flaggedMine = [];
 
 // EDIT CONSTANTS
 const matrixSizeW = 10;
 const matrixSizeH = 10;
 const bombCount = 15;
 
+let flagCount = 0;
 let notBombLeft = 0;
 let gameOver = false;
 
-buildMatrixBoard();
-putBomb(bombCount);
-renderMatrix();
-openRandomValue();
+document.getElementById('start').addEventListener('click', ev => {
+    generate();
+});
+
+generate();
+
+function generate() {
+    document.getElementById('matrix').innerHTML = '';
+
+    bombIndex.length = 0;
+    matrix.length = 0;
+
+    flagCount = 0;
+    notBombLeft = 0;
+    gameOver = false;
+
+    buildMatrixBoard();
+    putBomb(bombCount);
+    renderMatrix();
+    openRandomValue();
+}
 
 function win() {
     bombIndex.forEach(i => {
@@ -29,9 +47,6 @@ function win() {
         button.textContent = 'X';
     });
     gameOver = true;
-    setTimeout(() => {
-        alert('WIN!')
-    }, 1);
 }
 
 function lose() {
@@ -47,20 +62,13 @@ function lose() {
         button.textContent = 'X';
     });
     gameOver = true;
-    setTimeout(() => {
-        alert('LOSE!')
-    }, 1);
 }
 
 function checkWin() {
-    const flags = flaggedMine.slice().sort((a, b) => a - b);
-    const bombs = bombIndex.slice().sort((a, b) => a - b);
-
-    for(let i = 0; i < bombs.length; i++) {
-        if (flags[i] !== bombs[i]) return;
+    const allBombFlagged = bombIndex.map(i => matrix[i]).every(n => n.flagged);
+    if (allBombFlagged && flagCount === 15 && notBombLeft === 0) {
+        win();
     }
-
-    if (notBombLeft === 0) win();
 }
 
 function renderMatrix() {
@@ -80,21 +88,18 @@ function renderMatrix() {
                 ev.preventDefault();
                 
                 const node = parseInt(ev.target.getAttribute('data-matrix-index'));
-                const flagged = ev.target.getAttribute('data-flagged');
 
                 if (matrix[node].opened) return;
 
-                if (flagged === 'false') {
-                    flaggedMine.push(node);
-                    ev.target.setAttribute('data-flagged', 'true');
+                if (!matrix[node].flagged) {
+                    button.setAttribute('data-flagged', 'true');
+                    matrix[node].flagged = true;
+                    flagCount++;
                 }
-                
-                if (flagged === 'true') {
-                    const index = flaggedMine.indexOf(node);
-                    if (index > -1) {
-                        flaggedMine.splice(index, 1);
-                        ev.target.setAttribute('data-flagged', 'false');
-                    }
+                else {
+                    button.setAttribute('data-flagged', 'false');
+                    matrix[node].flagged = false;
+                    flagCount--;
                 }
 
                 checkWin();
@@ -109,9 +114,12 @@ function renderMatrix() {
                     lose();
                     return;
                 }
-
-                ev.target.setAttribute('data-flagged', 'false');
-                flaggedMine.splice(node, 1);
+                
+                if (matrix[node].flagged) {
+                    ev.target.setAttribute('data-flagged', 'false');
+                    matrix[node].flagged = false;
+                    flagCount--;
+                }
 
                 openNode(node);
             });
@@ -125,8 +133,15 @@ function renderMatrix() {
 
 function openNode(index, noFloodFill = false) {
     const button = document.querySelector(`button[data-matrix-index="${index}"]`)
+    button.style.color = numColor[matrix[index].value];
     button.textContent = matrix[index].value;
     matrix[index].opened = true;
+
+    if (matrix[index].flagged) {
+        button.setAttribute('data-flagged', 'false');
+        matrix[index].flagged = false;
+        flagCount--;
+    }
 
     notBombLeft--;
 
@@ -201,7 +216,8 @@ function createBaseNode([x, y]) {
         pos: [x, y],
         bomb: false,
         value: 0,
-        opened: false
+        opened: false,
+        flagged: false,
     };
 }
 
